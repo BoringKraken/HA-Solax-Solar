@@ -1,11 +1,11 @@
 {
     "domain": "custom_solax",
     "name": "Solax Solar",
-    "documentation": "https://github.com/jarrodhinchliffe/HA-Solax-Solar",
+    "documentation": "https://github.com/BoringKraken/HA-Solax-Solar",
     "dependencies": [],
-    "codeowners": ["@jarrodhinchliffe"],
+    "codeowners": ["@BoringKraken"],
     "requirements": ["aiohttp>=3.8.0"],
-    "version": "1.0.1",
+    "version": "1.0.2",
     "iot_class": "local_polling",
     "config_flow": true
 } 
