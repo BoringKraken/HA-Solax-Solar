@@ -6,5 +6,5 @@
     "homeassistant": "2024.1.0",
     "iot_class": "local_polling",
     "hacs": "1.26.0",
-    "issue_tracker": "https://github.com/BoringKraken/HA-Smart-Dumb-Appliances/issues"
+    "issue_tracker": "https://github.com/BoringKraken/HA-Solax-Solar/issues"
   }
