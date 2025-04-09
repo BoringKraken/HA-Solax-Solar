@@ -30,7 +30,7 @@ A custom Home Assistant integration for Solax solar inverters that provides real
 2. Click the "Three Dots" in the top Right Hand corner
 3. Click "Custom repositories"
 4. Choose Type: Integration
-5. Copy in the link to this repository: https://github.com/jarrodhinchliffe/HA-Solax-Solar
+5. Copy in the link to this repository: https://github.com/BoringKraken/HA-Solax-Solar
 6. Click "Add"
 7. Find "Custom Solax" in the integrations list
 8. Click "Install"
