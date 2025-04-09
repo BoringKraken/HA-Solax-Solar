@@ -3,7 +3,7 @@ from datetime import timedelta
 
 # The unique identifier for this integration in Home Assistant
 # This must match the domain in manifest.json
-DOMAIN = "custom_solax"
+DOMAIN = "custom-solax"
 
 # How often to poll the inverter for new data
 # Default is every 30 seconds
