@@ -1,10 +1,9 @@
 {
     "name": "Custom Solax Solar",
     "content_in_root": false,
-    "render_readme": true,
     "domains": ["sensor"],
-    "homeassistant": "2024.1.0",
-    "iot_class": "local_polling",
+    "homeassistant": "2023.10.1",
+    "render_readme": true,
     "hacs": "1.26.0",
     "issue_tracker": "https://github.com/BoringKraken/HA-Solax-Solar/issues"
-  }
+}

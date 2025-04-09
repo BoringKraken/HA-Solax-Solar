@@ -1,12 +1,12 @@
 {
     "domain": "custom_solax",
-    "name": "Solax Solar",
+    "name": "Custom Solax",
+    "version": "1.0.6",
     "documentation": "https://github.com/BoringKraken/HA-Solax-Solar",
     "dependencies": [],
     "codeowners": ["@BoringKraken"],
-    "requirements": ["aiohttp>=3.8.0"],
-    "version": "1.0.5",
-    "iot_class": "local_polling",
+    "requirements": [],
+    "iot_class": "Local Polling",
     "config_flow": true,
-    "issue_tracker": "https://github.com/BoringKraken/HA-Solax-Solar/issues"
+    "homeassistant": "2025.3.4"
 } 
