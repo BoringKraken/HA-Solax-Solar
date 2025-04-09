@@ -80,3 +80,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## ⚠️ Disclaimer
 
 This is a custom integration and is not officially supported by Solax. Use at your own risk.
+
+## Debugging
+
+If you encounter issues with the integration, you can enable debug logging to get more detailed information. To do this:
+
+1. Open your Home Assistant configuration file (`configuration.yaml`)
+2. Add the following logger configuration:
+   ```yaml
+   logger:
+     default: info
+     logs:
+       custom_components.custom_solax: debug
+   ```
+3. Restart Home Assistant for the changes to take effect
+
+This will enable detailed logging for the Custom Solax integration, which can help diagnose any issues you might encounter.
