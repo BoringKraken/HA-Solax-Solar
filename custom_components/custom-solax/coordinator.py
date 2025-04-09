@@ -1,34 +1,22 @@
-"""Data update coordinator for the Custom Solax integration."""
+"""Data update coordinator for the Solax integration."""
 from __future__ import annotations
 
 import logging
 from datetime import timedelta
 from typing import Any
+import re
 
 import aiohttp
+import json
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import (
-    API_REALTIME_DATA,
-    DEFAULT_SCAN_INTERVAL,
-    DEFAULT_TIMEOUT,
-    DOMAIN,
-)
+from .const import API_REALTIME_DATA, DEFAULT_TIMEOUT, DOMAIN, SENSOR_TYPES
 
-# Set up logging
 _LOGGER = logging.getLogger(__name__)
 
 class SolaxDataUpdateCoordinator(DataUpdateCoordinator):
-    """
-    Class to manage fetching Solax data.
-    
-    This coordinator handles:
-    - Fetching data from the inverter at regular intervals
-    - Processing the raw data into a usable format
-    - Providing the data to all sensors
-    - Error handling and retries
-    """
+    """Class to manage fetching Solax data."""
 
     def __init__(
         self,
@@ -38,86 +26,122 @@ class SolaxDataUpdateCoordinator(DataUpdateCoordinator):
         username: str,
         password: str,
     ) -> None:
-        """
-        Initialize the coordinator.
-        
-        Args:
-            hass: Home Assistant instance
-            session: aiohttp session for making HTTP requests
-            host: IP address or hostname of the inverter
-            username: Username for authentication
-            password: Password for authentication
-        """
+        """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=timedelta(seconds=30),
         )
-        # Store connection details
         self._session = session
         self._host = host
         self._username = username
         self._password = password
-        self._auth = aiohttp.BasicAuth(username, password)
+        self._url = f"http://{host}{API_REALTIME_DATA}"
+        self._processed_data = {}
+        _LOGGER.info("Initialized Solax coordinator with URL: %s", self._url)
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """
-        Fetch and process data from the inverter.
-        
-        This method is called by the coordinator at regular intervals.
-        It:
-        1. Makes an HTTP request to the inverter
-        2. Processes the response
-        3. Returns the processed data
-        
-        Returns:
-            dict: Processed data from the inverter
-            
-        Raises:
-            UpdateFailed: If there's an error fetching or processing the data
-        """
+        """Fetch data from the Solax inverter."""
         try:
-            # Make HTTP request to the inverter
+            _LOGGER.info("Attempting to fetch data from URL: %s", self._url)
+            _LOGGER.debug("Using credentials - Username: %s, Password: %s", self._username, "***")
+            
             async with self._session.get(
-                f"http://{self._host}{API_REALTIME_DATA}",
-                auth=self._auth,
+                self._url,
+                auth=aiohttp.BasicAuth(self._username, self._password),
                 timeout=DEFAULT_TIMEOUT,
             ) as response:
-                # Check if the request was successful
+                _LOGGER.info("Response status: %s", response.status)
+                _LOGGER.debug("Response headers: %s", response.headers)
+                
                 if response.status != 200:
-                    raise UpdateFailed(f"Invalid response from Solax inverter: {response.status}")
+                    error_text = await response.text()
+                    _LOGGER.error(
+                        "Error fetching data from Solax inverter. Status: %s, Response: %s",
+                        response.status,
+                        error_text,
+                    )
+                    raise UpdateFailed(f"Error fetching data: {response.status}")
 
-                # Get the raw data from the response
-                data = await response.text()
+                # Get the raw text response
+                text_response = await response.text()
+                _LOGGER.debug("Raw response: %s", text_response)
                 
-                # Process the data similar to the bash script
-                # Replace empty values with 0 to handle missing data
-                data = data.replace(",,", ",0,")
+                # Extract the Data array content
+                data_match = re.search(r'"Data":\[(.*?)\]', text_response)
+                if not data_match:
+                    raise UpdateFailed("Could not find Data array in response")
                 
+                # Split the data array into individual values
+                data_values = data_match.group(1).split(',')
+                
+                # Replace empty values with null
+                cleaned_values = ['null' if not value.strip() else value for value in data_values]
+                
+                # Reconstruct the JSON with cleaned data array
+                cleaned_response = text_response.replace(
+                    data_match.group(0),
+                    f'"Data":[{",".join(cleaned_values)}]'
+                )
+                
+                _LOGGER.debug("Cleaned response: %s", cleaned_response)
+                
+                # Try to parse as JSON
                 try:
-                    # Split the data into lines and process each line
-                    lines = data.split("\n")
-                    result = {}
-                    
-                    # Process each line of the response
-                    for line in lines:
-                        # Look for key=value pairs
-                        if "=" in line:
-                            # Split the line into key and value
-                            key, value = line.split("=", 1)
-                            # Store the processed data
-                            result[key.strip()] = value.strip()
-                    
-                    return result
-                    
-                except Exception as err:
-                    # Handle any errors during data processing
-                    raise UpdateFailed(f"Error parsing Solax data: {err}")
+                    data = json.loads(cleaned_response)
+                    _LOGGER.debug("Successfully parsed JSON data: %s", data)
+                except json.JSONDecodeError as err:
+                    _LOGGER.error("Error decoding JSON response: %s", err)
+                    _LOGGER.error("Original response: %s", text_response)
+                    _LOGGER.error("Cleaned response: %s", cleaned_response)
+                    raise UpdateFailed("Invalid JSON response from inverter")
+                
+                if not data:
+                    _LOGGER.error("Received empty response from inverter")
+                    raise UpdateFailed("Empty response from inverter")
+                
+                # Process the data into the expected format
+                self._processed_data = self._process_data(data)
+                _LOGGER.debug("Processed data: %s", self._processed_data)
+                
+                return self._processed_data
 
         except aiohttp.ClientError as err:
-            # Handle network/connection errors
-            raise UpdateFailed(f"Error communicating with Solax inverter: {err}")
+            _LOGGER.error("Error connecting to Solax inverter: %s", err)
+            raise UpdateFailed(f"Error communicating with inverter: {err}") from err
         except Exception as err:
-            # Handle any other unexpected errors
-            raise UpdateFailed(f"Unexpected error: {err}") 
+            _LOGGER.error("Unexpected error fetching Solax data: %s", err)
+            raise UpdateFailed(f"Error fetching data: {err}") from err
+
+    def _process_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Process the JSON data into the expected format."""
+        try:
+            _LOGGER.debug("Processing data structure: %s", data)
+            
+            # Initialize the result dictionary
+            result = {}
+            
+            # Add basic information
+            for key in ["method", "version", "type", "SN", "Status"]:
+                if key in data:
+                    result[key] = data[key]
+                    _LOGGER.debug("Added %s: %s", key, data[key])
+            
+            # Process the Data array
+            if "Data" in data and isinstance(data["Data"], list):
+                for i, value in enumerate(data["Data"]):
+                    if value is not None:  # Skip None values
+                        result[f"Data_{i}"] = value
+                        _LOGGER.debug("Added Data_%d: %s", i, value)
+            
+            if not result:
+                _LOGGER.error("No data was processed from the response")
+            else:
+                _LOGGER.info("Successfully processed %d data points", len(result))
+            
+            return result
+            
+        except Exception as err:
+            _LOGGER.error("Error processing data: %s", err)
+            raise UpdateFailed(f"Error processing data: {err}") from err 
