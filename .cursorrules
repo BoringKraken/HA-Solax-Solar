@@ -1,0 +1,67 @@
+# HA-Solax-Solar Project Intelligence
+
+## Project Patterns
+
+### Home Assistant Integration Structure
+- Integration follows standard Home Assistant integration structure with `__init__.py`, `coordinator.py`, `entity.py`, `sensor.py`, etc.
+- Uses the Home Assistant DataUpdateCoordinator pattern for efficient polling
+- Config Flow for UI-based configuration
+
+### Solax API Patterns
+- Inverter API provides data in a text/HTML format that contains JSON
+- Response contains a "Data" array with various metrics
+- Empty values in arrays need special handling (replace with null before JSON parsing)
+- Authentication uses HTTP Basic Auth
+- Regular polling (default 30 seconds)
+
+### Naming Conventions
+- Integration domain: `custom-solax`
+- Sensor naming: `sensor.solax_<sensor_name>`
+- Internal data keys follow the Solax API naming with underscores for readability
+
+### Code Style
+- Python code follows Home Assistant code style
+- Comprehensive logging for debugging purposes
+- Type hints used throughout the codebase
+- Constants defined in `const.py`
+
+## Project-Specific Knowledge
+
+### Inverter Data Format
+- Response from inverter is in text/HTML format but contains JSON
+- The Data array often contains empty values (consecutive commas)
+- Data points have specific meanings defined in the Solax API documentation
+- Different inverter models may provide different data points
+
+### Common Issues
+- JSON parsing errors due to empty values in arrays
+- Need to handle different response formats from different inverter models
+- Configuration and authentication issues are common
+- Logger configuration in Home Assistant requires specific syntax
+
+### Debugging Approaches
+- Enable debug logging in configuration.yaml
+- Check response format in logs
+- Verify data processing steps
+- Confirm sensor creation
+
+### User Preferences
+- Detailed logging for troubleshooting
+- Clear documentation in README
+- Use of appropriate units and icons for sensors
+- Integration with Home Assistant Energy Dashboard
+
+## Important Paths and Files
+- `custom_components/custom-solax/coordinator.py`: Core data fetching and processing
+- `custom_components/custom-solax/sensor.py`: Sensor entity definitions
+- `custom_components/custom-solax/const.py`: Constants and sensor definitions
+- `custom_components/custom-solax/config_flow.py`: UI configuration
+- `custom_components/custom-solax/__init__.py`: Integration setup
+- `custom_components/custom-solax/entity.py`: Base entity implementation
+- `custom_components/custom-solax/manifest.json`: Integration metadata
+
+## Implementation Insights
+- Data cleaning is critical for handling the Solax API responses
+- Error handling needs to be robust due to network and formatting issues
+- Logging is essential for diagnosing issues with different inverter models
+- Sensor creation depends on available data from the specific inverter model 
